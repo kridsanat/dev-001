@@ -6,13 +6,10 @@ services:
     image: portainer/portainer-ce:latest
     ports:
       - 8890:9000
-
     volumes:
         - data:/data
         - /var/run/docker.sock:/var/run/docker.sock
-    restart: unless-stopped\
-  volumes:
-  data:
+    restart: unless-stopped
 
   app:
     image: 'jc21/nginx-proxy-manager:latest'
