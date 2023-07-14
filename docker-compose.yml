@@ -89,7 +89,7 @@ services:
       timeout: 5s
       retries: 5
     volumes:
-      - konga_data:/data/db
+      - konga_data: /data/db
   konga:
     image: pantsel/konga:latest
     ports:
