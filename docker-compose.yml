@@ -20,94 +20,120 @@ services:
     restart: unless-stopped
     ports:
       - "8890:9000"
-volumes: 
-  portainer_data:
 
-kong:
-    image: kong:2.0.2-alpine
+  kong-database:
+    image: postgres:12-alpine
+    container_name: kong-database
+    environment:
+      - POSTGRES_USER=kong
+      - POSTGRES_DB=kong
+      - POSTGRES_PASSWORD=kong
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  migrations:
+    depends_on:
+      - kong-database
+    image: kong
+    container_name: kong-migrations
+    environment:
+      - KONG_DATABASE=postgres
+      - KONG_PG_HOST=kong-database
+      - KONG_PG_DATABASE=kong
+      - KONG_PG_USER=kong
+      - KONG_PG_PASSWORD=kong
+    command: kong migrations bootstrap -v
+
+  kong:
+    depends_on:
+      - kong-database
+    image: kong
+    ports:
+      - 80:8000
+      - 443:8443 
+      - 8001:8001
     container_name: kong
-    depends_on:
-      - kong_db
-      - kong_migration
-      
-    expose:
-      - "8001"
-      - "8444"
-      - "8000"
-      - "8443"
     restart: always
     environment:
-      KONG_DATABASE:         postgres
-      KONG_PG_HOST:          kong_db
-      KONG_PG_PORT:          5432
-      KONG_PG_DATABASE:      kong
-      KONG_PROXY_ACCESS_LOG: /dev/stdout
-      KONG_ADMIN_ACCESS_LOG: /dev/stdout
-      KONG_PROXY_ERROR_LOG:  /dev/stderr
-      KONG_ADMIN_ERROR_LOG:  /dev/stderr
-      KONG_PROXY_LISTEN:     0.0.0.0:8000, 0.0.0.0:8443 ssl
-      KONG_ADMIN_LISTEN:     0.0.0.0:8001, 0.0.0.0:8444 ssl
-      KONG_PLUGINS:          basic-auth, key-auth, rate-limiting, prometheus, proxy-cache, oauth2
+      - KONG_DATABASE=postgres
+      - KONG_PG_HOST=kong-database
+      - KONG_PG_DATABASE=kong
+      - KONG_PG_USER=kong
+      - KONG_PG_PASSWORD=kong
+      - KONG_ADMIN_LISTEN=0.0.0.0:8001
+      - KONG_PROXY_LISTEN=0.0.0.0:8000, 0.0.0.0:8443 ssl http2
+      - KONG_NGINX_HTTP_RESOLVER=8.8.8.8
+      - KONG_PROXY_ERROR_LOG=/dev/stderr
+      - KONG_ADMIN_ERROR_LOG=/dev/stderr
+      - KONG_TRUSTED_IPS=0.0.0.0/0,::/0
+      - KONG_REAL_IP_RECURSIVE=on
+    healthcheck:
+      test: ["CMD", "wget", "-O-", "http://127.0.0.1:8001/status"]
+      interval: 30s
+      timeout: 20s
+      retries: 5
 
-      VIRTUAL_HOST: service.labxx.cpsudevops.com
-      VIRTUAL_PORT: 8000
-      LETSENCRYPT_HOST: service.labxx.cpsudevops.com
-
-    networks: 
-    - webproxy
-    - default
-    
-kong_db:
-    image: postgres:9.6
-    container_name: kong_db
+  mongo:
+    image: mongo:4.2.2-bionic
+    ports: 
+      - 27017:27017
+    healthcheck:
+      test: echo 'db.stats().ok' | mongo localhost:27017/konga --quiet
+      interval: 30s
+      timeout: 5s
+      retries: 5
     volumes:
-      - kong_datastore:/var/lib/postgresql/data
-    restart: always
+      - konga_data:/data/db
+  konga:
+    image: pantsel/konga:latest
+    ports:
+      - 1337:1337
     environment:
-      POSTGRES_DB: kong
-      POSTGRES_USER: kong
-      POSTGRES_HOST_AUTH_METHOD: trust
-  
-kong_migration:
-    image: kong:latest
-    container_name: kong_migration
-    command: "kong migrations bootstrap"
-    restart: on-failure
-    environment:
-      KONG_PG_HOST: kong_db
-    depends_on:
-      - kong_db
-      
-konga:
-    container_name: konga
-    image: pantsel/konga
-    restart: always
-
-    environment:
-      DB_ADAPTER: postgres
-      DB_HOST: konga_db
-      DB_USER: konga 
+      DB_ADAPTER: mongo
       DB_DATABASE: konga
-      NODE_ENV: development
-
-      VIRTUAL_HOST: konga.labxx.cpsudevops.com
-      VIRTUAL_PORT: 1337
-      LETSENCRYPT_HOST: konga.labxx.cpsudevops.com
-
-    expose:
-    - "1337"
-
-    networks: 
-      - webproxy
-      - default
-  
-konga_db:
-    image: postgres:9.6
-    container_name: konga_db
+      DB_HOST: mongo
+      KONGA_SEED_USER_DATA_SOURCE_FILE: /kus.js
+      NODE_ENV: production
     volumes:
-      - konga_database:/var/lib/postgresql/data
+      - ./kus.js:/kus.js:ro
+    restart: on-failure
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - 127.0.0.1:9090:9090
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
     restart: always
+
+  node_exporter:
+    image: prom/node-exporter:latest
+    ports:
+      - 9100:9100
+    container_name: node_exporter
+    restart: always
+    depends_on:
+      - prometheus
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - 3000:3000
+    container_name: grafana
+    restart: always
+    links: 
+      - prometheus:prometheus
     environment:
-      POSTGRES_DB: konga
-      POSTGRES_USER: konga
-      POSTGRES_HOST_AUTH_METHOD: trust 
+      GF_INSTALL_PLUGINS: grafana-clock-panel, grafana-simple-json-datasource
+    depends_on:
+      - prometheus
+
