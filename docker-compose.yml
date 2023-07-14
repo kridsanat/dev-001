@@ -1,5 +1,5 @@
 
-version: "3"
+version: "3.8"
 
 services:
 
@@ -25,8 +25,3 @@ volumes:
     volumes:
       - ./data:/data
       - ./letsencrypt:/etc/letsencrypt 
-
-
-networks:
-  default:
-    name: m_network  
