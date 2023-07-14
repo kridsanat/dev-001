@@ -10,3 +10,12 @@ services:
     volumes:
       - ./data:/data
       - ./letsencrypt:/etc/letsencrypt
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    ports:
+      - 8890:9000
+    volumes:
+        - data:/data
+        - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
