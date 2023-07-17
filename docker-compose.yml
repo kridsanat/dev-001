@@ -9,20 +9,20 @@ services:
       - '443:443'
     volumes:
       - ./data:/data
-      - ./letsencrypt:/etc/letsencrypt
-    
+      - ./letsencrypt:/etc/letsencrypt 
 
   portainer:
     container_name: portainerr
     image: portainer/portainer
-    volumes:
-      - portainer_data:/data
-      - /var/run/docker.sock:/var/run/docker.sock
+
     external: true
     restart: unless-stopped
     ports:
       - "8890:9000"
-
+    volumes:
+      - portainer_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      
   kong-database:
     image: postgres:12-alpine
     container_name: kong-database
