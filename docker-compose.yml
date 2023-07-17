@@ -10,6 +10,7 @@ services:
     volumes:
       - ./data:/data
       - ./letsencrypt:/etc/letsencrypt
+    
 
   portainer:
     container_name: portainerr
@@ -17,6 +18,7 @@ services:
     volumes:
       - portainer_data:/data
       - /var/run/docker.sock:/var/run/docker.sock
+    external: true
     restart: unless-stopped
     ports:
       - "8890:9000"
