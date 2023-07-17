@@ -11,12 +11,11 @@ services:
       - '81:81'
       - '443:443'
 
-
   portainer:
     container_name: portainerr
     image: portainer/portainer
     volumes:
-      - portainer_data:/data
+      - ./portainer_data:/data
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
     ports:
