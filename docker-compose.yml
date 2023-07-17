@@ -28,15 +28,15 @@ services:
       - POSTGRES_USER=kong
       - POSTGRES_DB=kong
       - POSTGRES_PASSWORD=kong
-    volumes:
-      - ./pg_data:/var/lib/postgresql/data
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 30s
       timeout: 10s
       retries: 5
-
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+      
   migrations:
     depends_on:
       - kong-database
@@ -101,21 +101,21 @@ services:
       DB_HOST: mongo
       KONGA_SEED_USER_DATA_SOURCE_FILE: /kus.js
       NODE_ENV: production
+    restart: on-failure
     volumes:
       - ./kus.js:/kus.js:ro
-    restart: on-failure
 
   prometheus:
     image: prom/prometheus
     ports:
       - 127.0.0.1:9090:9090
     container_name: prometheus
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
     restart: always
-
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      
   node_exporter:
     image: prom/node-exporter:latest
     ports:
