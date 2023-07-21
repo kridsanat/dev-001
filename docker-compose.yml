@@ -47,8 +47,6 @@ services:
   kong-migration:
     image: ${KONG_DOCKER_TAG:-kong:latest}
     command: kong migrations bootstrap
-    networks:
-      - kong-net
     restart: on-failure
     environment:
       KONG_DATABASE: postgres
