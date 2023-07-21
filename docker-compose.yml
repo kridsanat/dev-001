@@ -21,10 +21,6 @@ services:
     ports:
       - "8890:9000"
 
-volumes:
-  kong_data: {}
-  
-
 #######################################
   # Postgres: The database used by Kong
 #######################################
