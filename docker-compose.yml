@@ -24,9 +24,7 @@ services:
 volumes:
   kong_data: {}
   
-networks:
- kong-net:
- services:
+
 #######################################
   # Postgres: The database used by Kong
 #######################################
