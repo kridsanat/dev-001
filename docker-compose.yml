@@ -111,7 +111,7 @@ services:
     image: postgres:9.6
     container_name: konga_db
     volumes:
-      - konga_database:/var/lib/postgresql/data
+      - ./konga_database:/var/lib/postgresql/data
     restart: always
     environment:
       POSTGRES_DB: konga
