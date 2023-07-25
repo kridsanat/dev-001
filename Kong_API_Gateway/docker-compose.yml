@@ -1,26 +1,10 @@
-version: '3.8'
+version: "3.7"
+volumes:
+  kong_data: {}
+  
+networks:
+ kong-net:
 services:
-  nginxproxy:
-    image: 'jc21/nginx-proxy-manager:latest'
-    volumes:
-      - ./data:/data
-      - ./letsencrypt:/etc/letsencrypt 
-    restart: unless-stopped
-    ports:
-      - '80:80'
-      - '81:81'
-      - '443:443'
-
-  portainer:
-    container_name: portainerr
-    image: portainer/portainer
-    volumes:
-      - ./portainer_data:/data
-      - /var/run/docker.sock:/var/run/docker.sock
-    restart: unless-stopped
-    ports:
-      - "8890:9000"
-
 #######################################
   # Postgres: The database used by Kong
 #######################################
@@ -28,8 +12,10 @@ services:
     image: postgres:9.6
     container_name: kong-postgres
     restart: on-failure
+    networks:
+      - kong-net
     volumes:
-      - ./kong_data:/var/lib/postgresql/data
+      - kong_data:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: kong
       POSTGRES_PASSWORD: ${KONG_PG_PASSWORD:-kong}
@@ -47,6 +33,8 @@ services:
   kong-migration:
     image: ${KONG_DOCKER_TAG:-kong:latest}
     command: kong migrations bootstrap
+    networks:
+      - kong-net
     restart: on-failure
     environment:
       KONG_DATABASE: postgres
@@ -62,6 +50,8 @@ services:
   kong:
     image: ${KONG_DOCKER_TAG:-kong:latest}
     restart: on-failure
+    networks:
+      - kong-net
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: kong-database
@@ -89,6 +79,8 @@ services:
   konga-prepare:
     image: pantsel/konga:latest
     command: "-c prepare -a postgres -u postgresql://kong:${KONG_PG_PASSWORD:-kong}@kong-database:5432/konga"
+    networks:
+      - kong-net
     restart: on-failure
     depends_on:
       - kong-database
@@ -98,6 +90,8 @@ services:
   konga:
     image: pantsel/konga:latest
     restart: always
+    networks:
+        - kong-net   
     environment:
       DB_ADAPTER: postgres
       DB_URI: postgresql://kong:${KONG_PG_PASSWORD:-kong}@kong-database:5432/konga
@@ -106,6 +100,3 @@ services:
       - kong-database
     ports:
       - "1337:1337"
-
-
-
