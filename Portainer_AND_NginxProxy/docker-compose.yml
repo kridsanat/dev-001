@@ -1,6 +1,7 @@
 version: '3.8'
 services:
   nginxproxy:
+    container_name: nginxproxy
     image: 'jc21/nginx-proxy-manager:latest'
     volumes:
       - ./data:/data
