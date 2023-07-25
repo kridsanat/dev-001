@@ -11,6 +11,10 @@ services:
       - '81:81'
       - '443:443'
 
+    networks: 
+    - webproxy
+    - default
+
   portainer:
     container_name: portainerr
     image: portainer/portainer
@@ -20,7 +24,11 @@ services:
     restart: unless-stopped
     ports:
       - "8890:9000"
-
+      
+    networks: 
+    - webproxy
+    - default
+      
   kong:
     image: kong:2.0.2-alpine
     container_name: kong
@@ -134,9 +142,8 @@ volumes:
   konga_database:
   prometheus_data:
   
-networks:
-  default:
-    external:
-      name: kong_network
+    networks: 
+    - webproxy
+    - default
 
 
